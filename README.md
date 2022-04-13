@@ -1,11 +1,6 @@
-## My Project
+## CSV Manager for AWS Security Hub
 
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+CSV Manager for AWS Security Hub exports SecurityHub findings to a CSV file and allows you to mass-update SecurityHub findings by modifying that CSV file. For more information, please consult the `README.pdf` file in this repository.
 
 ## Security
 
