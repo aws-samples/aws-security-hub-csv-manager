@@ -1,0 +1,7 @@
+{"principalsJson": 
+{
+    "principals": [
+       "arn:aws:iam::164837055554:role/Security_Admin"
+     ]
+}
+}
