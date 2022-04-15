@@ -112,10 +112,8 @@ export class SecHubExportStack extends Stack {
       }));
   })
 
-    //// Exporter Resources
-
-    // Lambda Function for CSV Exporter 
-    const sh_csv_exporter = new iam.Role(this, 'sh_csv_exporter', {
+    // Lambda Function for CSV exporter 
+    const secub_csv_manager_role = new iam.Role(this, 'secub_csv_manager_role', {
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("lambda.amazonaws.com"),
         new iam.ServicePrincipal("ec2.amazonaws.com"),
@@ -138,10 +136,10 @@ export class SecHubExportStack extends Stack {
         security_hub_export_bucket.arnForObjects('*')
       ],
       principals: [
-        new iam.ArnPrincipal(sh_csv_exporter.roleArn)],
+        new iam.ArnPrincipal(secub_csv_manager_role.roleArn)],
     }));
 
-    const sh_csv_exporter_function = new Function(this, 'SH_CSV_Exporter', {
+    const sh_csv_exporter_function = new Function(this, 'secub_csv_exporter_function', {
       runtime: Runtime.PYTHON_3_9,
       functionName: this.stackName + '_' + this.account + '_sh_csv_exporter',
       code: Code.fromAsset(join(__dirname, "../lambdas")),
@@ -149,14 +147,14 @@ export class SecHubExportStack extends Stack {
       description: 'Export SecurityHub findings to CSV in S3 bucket.',
       timeout: Duration.seconds(900),
       memorySize: 512,
-      role: sh_csv_exporter,
+      role: secub_csv_manager_role,
       reservedConcurrentExecutions: 100,
       environment:{
         CSV_PRIMARY_REGION: PrimaryRegion.valueAsString
       },
     });
 
-    const sh_csv_Updater_function = new Function(this, 'SH_CSV_Updater', {
+    const sh_csv_updater_function = new Function(this, 'secub_csv_updater_function', {
       runtime: Runtime.PYTHON_3_9,
       functionName: this.stackName + '_' + this.account + '_sh_csv_updater',
       code: Code.fromAsset(join(__dirname, "../lambdas")),
@@ -164,14 +162,14 @@ export class SecHubExportStack extends Stack {
       description: 'Update SecurityHub findings to CSV in S3 bucket.',
       timeout: Duration.seconds(900),
       memorySize: 512,
-      role: sh_csv_exporter,
+      role: secub_csv_manager_role,
       reservedConcurrentExecutions: 100,
       environment:{
         CSV_PRIMARY_REGION: PrimaryRegion.valueAsString
       },
     });
 
-    const ExportSHFindingtoCSVPolicyDoc = new iam.PolicyDocument({
+    const export_sechub_finding_policy_doc = new iam.PolicyDocument({
       statements: [
         new iam.PolicyStatement({
           sid: "IAMAllow",
@@ -226,7 +224,7 @@ export class SecHubExportStack extends Stack {
             "kms:Describe*",
             "kms:Encrypt",
             "kms:GenerateDataKey",
-            "kms:Decrypt*"
+            "kms:Decrypt"
           ],
           resources: [
             s3_kms_key.keyArn
@@ -240,7 +238,7 @@ export class SecHubExportStack extends Stack {
           ],
           resources: [
             sh_csv_exporter_function.functionArn,
-            sh_csv_Updater_function.functionArn
+            sh_csv_updater_function.functionArn
           ]   
         }),
         new iam.PolicyStatement({
@@ -257,11 +255,11 @@ export class SecHubExportStack extends Stack {
       ],
     });
 
-    new iam.ManagedPolicy(this, 'SecurityHubtoCSVManagedPolicy', {
+    new iam.ManagedPolicy(this, 'sechub_csv_managed_policy', {
       description: '',
-      document:ExportSHFindingtoCSVPolicyDoc,
-      managedPolicyName: 'SecurityHub_CSV_Exporter_Policy',
-      roles: [sh_csv_exporter]
+      document:export_sechub_finding_policy_doc,
+      managedPolicyName: 'sechub_csv_manager',
+      roles: [secub_csv_manager_role]
     });
 
     new events.Rule(this, 'Rule', {
@@ -285,7 +283,7 @@ export class SecHubExportStack extends Stack {
       name: 'start_sh_finding_export',
       content: {
         "schemaVersion": "0.3",
-        "assumeRole": sh_csv_exporter.roleArn,
+        "assumeRole": secub_csv_manager_role.roleArn,
         "description": "Generate a Security Hub Findings Export (CSV Manager for Security Hub) outside of the normal export.",
         "parameters": {
           "Filters": {
@@ -341,12 +339,12 @@ export class SecHubExportStack extends Stack {
       name: 'start_sechub_csv_update',
       content: {
         "schemaVersion": "0.3",
-        "assumeRole": sh_csv_exporter.roleArn,
+        "assumeRole": secub_csv_manager_role.roleArn,
         "description": "Update a Security Hub Findings Update (CSV Manager for Security Hub) outside of the normal Update.",
         "parameters": {
           "Source": {
             "type": "String",
-            "description": "An S3 URL containing the CSV file to update.",
+            "description": "An S3 URI containing the CSV file to update. i.e. s3://<bucket_name>/Findings/SecurityHub-20220415-115112.csv",
             "default": ''
           },
           "PrimaryRegion": {
@@ -360,7 +358,7 @@ export class SecHubExportStack extends Stack {
           "name": "InvokeLambdaforSHFindingUpdate",
           "inputs": {
             "InvocationType": 'RequestResponse',
-            "FunctionName": sh_csv_Updater_function.functionName,
+            "FunctionName": sh_csv_updater_function.functionName,
             "Payload": "{ \"input\" : \"{{Source}}\" , \"primaryRegion\" : \"{{PrimaryRegion}}\"}"
           },
           'description':'Invoke the CSV Manager Update for Security Hub lambda function.',
