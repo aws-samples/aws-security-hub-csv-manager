@@ -225,7 +225,8 @@ export class SecHubExportStack extends Stack {
           actions: [
             "kms:Describe*",
             "kms:Encrypt",
-            "kms:GenerateDataKey"
+            "kms:GenerateDataKey",
+            "kms:Decrypt*"
           ],
           resources: [
             s3_kms_key.keyArn
@@ -263,7 +264,7 @@ export class SecHubExportStack extends Stack {
       roles: [sh_csv_exporter]
     });
 
-    const rule = new events.Rule(this, 'Rule', {
+    new events.Rule(this, 'Rule', {
       schedule: events.Schedule.expression(Frequency.valueAsString),
       enabled: false,
       description: "Invoke Security Hub findings exporter periodically.",
@@ -279,7 +280,7 @@ export class SecHubExportStack extends Stack {
     });
     
     // SSM Document for SSM Account configuration
-    const manual_ssm_document = new CfnDocument(this, 'manual_ssm_document', {
+    const create_sh_export_document = new CfnDocument(this, 'create_sh_export_document', {
       documentType: 'Automation',
       name: 'start_sh_finding_export',
       content: {
@@ -333,11 +334,9 @@ export class SecHubExportStack extends Stack {
         }]
       } 
     });
-
-    //// Updater Resources
     
     // SSM Document for SSM Account configuration
-    const manual_update_ssm_document = new CfnDocument(this, 'manual_update_ssm_document', {
+    const update_sh_export_document = new CfnDocument(this, 'update_sh_export_document', {
       documentType: 'Automation',
       name: 'start_sechub_csv_update',
       content: {
@@ -377,48 +376,48 @@ export class SecHubExportStack extends Stack {
       } 
     });
 
-        //SSM Parameters
-        new StringParameter(this, 'BucketNameParameter', {
-          description: 'The S3 bucket where Security Hub are exported.',
-          parameterName: '/csvManager/bucket',
-          stringValue: security_hub_export_bucket.bucketName,
-        });
-        
-        const KMSKeyParameter = new StringParameter(this, 'KMSKeyParameter', {
-          description: 'The KMS key encrypting the S3 bucket objects.',
-          parameterName: '/csvManager/key',
-          stringValue: s3_kms_key.keyArn,
-        });
+    //SSM Parameters
+    new StringParameter(this, 'BucketNameParameter', {
+      description: 'The S3 bucket where Security Hub are exported.',
+      parameterName: '/csvManager/bucket',
+      stringValue: security_hub_export_bucket.bucketName,
+    });
+    
+    const KMSKeyParameter = new StringParameter(this, 'KMSKeyParameter', {
+      description: 'The KMS key encrypting the S3 bucket objects.',
+      parameterName: '/csvManager/key',
+      stringValue: s3_kms_key.keyArn,
+    });
 
-        const CodeFolderParameter = new StringParameter(this, 'CodeFolderParameter', {
-          description: 'The folder where CSV Manager for Security Hub code is stored.',
-          parameterName: '/csvManager/folder/code',
-          stringValue: CodeFolder.valueAsString,
-        });
-    
-        const FindingsFolderParameter = new StringParameter(this, 'FindingsFolderParameter', {
-          description: 'The folder where CSV Manager for Security Hub findings are exported.',
-          parameterName: '/csvManager/folder/findings',
-          stringValue: FindingsFolder.valueAsString,
-        });
-    
-        const ArchiveKeyParameter = new StringParameter(this, 'ArchiveKeyParameter', {
-          description: 'The name of the ZIP archive containing CSV Manager for Security Hub Lambda code.',
-          parameterName: '/csvManager/object/codeArchive',
-          stringValue: 'Not Initialized',
-        });
-    
-        const PartitionParameter = new StringParameter(this, 'PartitionParameter', {
-          description: 'The partition in which CSV Manager for Security Hub will operate.',
-          parameterName: '/csvManager/partition',
-          stringValue: Partition.valueAsString,
-        });
-    
-        const RegionParameter = new StringParameter(this, 'RegionParameter', {
-          description: 'The list of regions in which CSV Manager for Security Hub will operate.',
-          parameterName: '/csvManager/regionList',
-          stringValue: Regions.valueAsString,
-        });
+    const CodeFolderParameter = new StringParameter(this, 'CodeFolderParameter', {
+      description: 'The folder where CSV Manager for Security Hub code is stored.',
+      parameterName: '/csvManager/folder/code',
+      stringValue: CodeFolder.valueAsString,
+    });
+
+    const FindingsFolderParameter = new StringParameter(this, 'FindingsFolderParameter', {
+      description: 'The folder where CSV Manager for Security Hub findings are exported.',
+      parameterName: '/csvManager/folder/findings',
+      stringValue: FindingsFolder.valueAsString,
+    });
+
+    const ArchiveKeyParameter = new StringParameter(this, 'ArchiveKeyParameter', {
+      description: 'The name of the ZIP archive containing CSV Manager for Security Hub Lambda code.',
+      parameterName: '/csvManager/object/codeArchive',
+      stringValue: 'Not Initialized',
+    });
+
+    const PartitionParameter = new StringParameter(this, 'PartitionParameter', {
+      description: 'The partition in which CSV Manager for Security Hub will operate.',
+      parameterName: '/csvManager/partition',
+      stringValue: Partition.valueAsString,
+    });
+
+    const RegionParameter = new StringParameter(this, 'RegionParameter', {
+      description: 'The list of regions in which CSV Manager for Security Hub will operate.',
+      parameterName: '/csvManager/regionList',
+      stringValue: Regions.valueAsString,
+    });
 
 }
 }
