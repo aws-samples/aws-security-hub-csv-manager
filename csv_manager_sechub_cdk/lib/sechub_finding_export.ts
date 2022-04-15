@@ -6,10 +6,9 @@ import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import * as events from 'aws-cdk-lib/aws-events'
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { StringParameter, CfnDocument } from 'aws-cdk-lib/aws-ssm';
-import { principalsJson } from '../config.json';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { BlockPublicAccess, Bucket, BucketEncryption, ObjectOwnership, StorageClass } from 'aws-cdk-lib/aws-s3';
-
+import { principalsJson } from '../config.json';
 
 export class SecHubExportStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -64,9 +63,6 @@ export class SecHubExportStack extends Stack {
       default: 31
     });
 
-    //// Data Store Resources
-
-    // S3 Bucket Resources
     // KMS Key for S3 Bucket for Security Hub Export
     const s3_kms_key = new Key(this, 's3_kms_key', {
       removalPolicy: RemovalPolicy.DESTROY,
@@ -96,6 +92,7 @@ export class SecHubExportStack extends Stack {
     }]
     });
 
+    // Be sure to add valid IAM principals to the principalsJson object in ../config.json object.
     principalsJson.principals.forEach((principal: string) => {
       security_hub_export_bucket.addToResourcePolicy(new iam.PolicyStatement({
         actions: [
@@ -175,9 +172,8 @@ export class SecHubExportStack extends Stack {
           sid: "IAMAllow",
           effect: iam.Effect.ALLOW,
           actions: [
-            "iam:PassRole",
-            "iam:PassRole",
-            "iam:CreateServiceLinkedRole"
+            "iam:CreateServiceLinkedRole",
+            "iam:PassRole"
           ],
           resources: [
             Fn.join('', ["arn:", this.partition ,":iam::", this.account,':role/*']),
@@ -198,8 +194,8 @@ export class SecHubExportStack extends Stack {
           sid: "SecurityHubAllow",
           effect: iam.Effect.ALLOW,
           actions: [
-            "securityhub:GetFindings",
-            "securityhub:BatchUpdateFindings"
+            "securityhub:BatchUpdateFindings",
+            "securityhub:GetFindings"
           ],
           resources: [
             '*'
@@ -209,8 +205,8 @@ export class SecHubExportStack extends Stack {
           sid: "S3Allow",
           effect: iam.Effect.ALLOW,
           actions: [
-            "s3:PutObject",
-            "s3:GetObject"
+            "s3:GetObject",
+            "s3:PutObject"
           ],
           resources: [
             security_hub_export_bucket.bucketArn,
@@ -221,10 +217,10 @@ export class SecHubExportStack extends Stack {
           sid: "KMSAllow",
           effect: iam.Effect.ALLOW,
           actions: [
+            "kms:Decrypt",
             "kms:Describe*",
             "kms:Encrypt",
-            "kms:GenerateDataKey",
-            "kms:Decrypt"
+            "kms:GenerateDataKey"
           ],
           resources: [
             s3_kms_key.keyArn
@@ -245,8 +241,8 @@ export class SecHubExportStack extends Stack {
           sid: "SSMAllow",
           effect: iam.Effect.ALLOW,
           actions: [
-            "ssm:PutParameter",
-            "ssm:GetParameters"
+            "ssm:GetParameters",
+            "ssm:PutParameter"
           ],
           resources: [
             Fn.join('', ["arn:", this.partition, ':ssm:', this.region, ':', this.account,':parameter/csvManager/*']),
@@ -278,7 +274,7 @@ export class SecHubExportStack extends Stack {
     });
     
     // SSM Document for SSM Account configuration
-    const create_sh_export_document = new CfnDocument(this, 'create_sh_export_document', {
+    new CfnDocument(this, 'create_sh_export_document', {
       documentType: 'Automation',
       name: 'start_sh_finding_export',
       content: {
@@ -334,7 +330,7 @@ export class SecHubExportStack extends Stack {
     });
     
     // SSM Document for SSM Account configuration
-    const update_sh_export_document = new CfnDocument(this, 'update_sh_export_document', {
+    new CfnDocument(this, 'update_sh_export_document', {
       documentType: 'Automation',
       name: 'start_sechub_csv_update',
       content: {
@@ -381,37 +377,37 @@ export class SecHubExportStack extends Stack {
       stringValue: security_hub_export_bucket.bucketName,
     });
     
-    const KMSKeyParameter = new StringParameter(this, 'KMSKeyParameter', {
+    new StringParameter(this, 'KMSKeyParameter', {
       description: 'The KMS key encrypting the S3 bucket objects.',
       parameterName: '/csvManager/key',
       stringValue: s3_kms_key.keyArn,
     });
 
-    const CodeFolderParameter = new StringParameter(this, 'CodeFolderParameter', {
+    new StringParameter(this, 'CodeFolderParameter', {
       description: 'The folder where CSV Manager for Security Hub code is stored.',
       parameterName: '/csvManager/folder/code',
       stringValue: CodeFolder.valueAsString,
     });
 
-    const FindingsFolderParameter = new StringParameter(this, 'FindingsFolderParameter', {
+    new StringParameter(this, 'FindingsFolderParameter', {
       description: 'The folder where CSV Manager for Security Hub findings are exported.',
       parameterName: '/csvManager/folder/findings',
       stringValue: FindingsFolder.valueAsString,
     });
 
-    const ArchiveKeyParameter = new StringParameter(this, 'ArchiveKeyParameter', {
+    new StringParameter(this, 'ArchiveKeyParameter', {
       description: 'The name of the ZIP archive containing CSV Manager for Security Hub Lambda code.',
       parameterName: '/csvManager/object/codeArchive',
       stringValue: 'Not Initialized',
     });
 
-    const PartitionParameter = new StringParameter(this, 'PartitionParameter', {
+    new StringParameter(this, 'PartitionParameter', {
       description: 'The partition in which CSV Manager for Security Hub will operate.',
       parameterName: '/csvManager/partition',
       stringValue: Partition.valueAsString,
     });
 
-    const RegionParameter = new StringParameter(this, 'RegionParameter', {
+    new StringParameter(this, 'RegionParameter', {
       description: 'The list of regions in which CSV Manager for Security Hub will operate.',
       parameterName: '/csvManager/regionList',
       stringValue: Regions.valueAsString,

@@ -2,8 +2,6 @@
 
 CSV Manager for AWS Security Hub exports Security Hub findings to a CSV file and allows you to mass-update SecurityHub findings by modifying that CSV file. For more information, please consult the `README.pdf` file in this repository.
 
-The solution can be deployed on a workstation or through [`Cloud Development Kit`](https://docs.aws.amazon.com/cdk/v2/guide/home.html) (CDK), which can be found below. For instructions on deploying the solution to a separate workstation, follow the [`Workstation Deployment`](/Workstation%20Deployment.pdf). 
-
 ## Build
 
 To build this app, you need to be in the cdk project root folder [`csv_manager_sechub_cdk`](/csv_manager_sechub_cdk/). Then run the following:
@@ -21,7 +19,8 @@ npm run build
     $ npm run build
     <build TypeScript files>
 
-To add additional IAM principals to access the S3 bucket where findings will be exported, add the IAM principal ARN to [`config.json`](/csv_manager_sechub_cdk/config.json)
+### IMPORTANT: You will need to add additional IAM principal(s) to access the S3 bucket where findings will be exported, add a valid IAM principal ARN to [`config.json`](/csv_manager_sechub_cdk/config.json).
+
 ## Deploy
 
     $ cdk bootstrap aws://<INSERT_AWS_ACCOUNT>/<INSERT_REGION>

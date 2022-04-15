@@ -1,7 +1,7 @@
-{"principalsJson": 
 {
-    "principals": [
-       "arn:aws:iam::164837055554:role/Security_Admin"
-     ]
-}
+  "principalsJson": {
+      "principals": [
+        "arn:aws:iam::123456789012:role/sechub_admin"
+      ]
+  }
 }
