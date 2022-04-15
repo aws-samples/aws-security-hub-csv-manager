@@ -2,6 +2,8 @@
 
 CSV Manager for AWS Security Hub exports Security Hub findings to a CSV file and allows you to mass-update SecurityHub findings by modifying that CSV file. For more information, please consult the `README.pdf` file in this repository.
 
+The solution can be deployed on a workstation or through [`Cloud Development Kit`](https://docs.aws.amazon.com/cdk/v2/guide/home.html) (CDK), which can be found below. For instructions on deploying the solution to a separate workstation, follow the [`Workstation Deployment`](/Workstation%20Deployment.pdf). 
+
 ## Build
 
 To build this app, you need to be in the cdk project root folder [`csv_manager_sechub_cdk`](/csv_manager_sechub_cdk/). Then run the following:
