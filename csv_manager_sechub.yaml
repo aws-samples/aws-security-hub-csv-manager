@@ -24,12 +24,16 @@ Parameters:
     Description: Folder that will contain Lambda code & CloudFormation templates.
   S3BucketCode:
     Type: String
-    Default: ""
+    Default: "awsiammedia"
     Description: S3 Bucket that will contain Lambda code.
-  S3BucketCodePrefix:
+  S3KeyExporter: 
     Type: String
-    Default: ""
-    Description: S3 Bucket prefix that will contain Lambda code
+    Default: "public/sample/1280-export-sh-findings-to-csv-format/csvExporter.zip"
+    Description: S3 Bucket prefix that will contain Lambda code for Exporter.
+  S3KeyUpdater:
+    Type: String
+    Default: "public/sample/1280-export-sh-findings-to-csv-format/csvUpdater.zip"
+    Description: S3 Bucket prefix that will contain Lambda code for Updater.
   ExpirationPeriod:
     Type: Number
     Default: 365
@@ -43,6 +47,7 @@ Resources:
     Type: AWS::KMS::Key
     Properties:
       KeyPolicy:
+        Version: "2012-10-17"
         Statement:
           - Action: kms:*
             Effect: Allow
@@ -56,14 +61,11 @@ Resources:
                     - Ref: AWS::AccountId
                     - :root
             Resource: "*"
-        Version: "2012-10-17"
       Description: KMS key for security hub findings in S3.
       EnableKeyRotation: false
       PendingWindowInDays: 7
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
-    Metadata:
-      aws:cdk:path: SecHubExportStack/s3_kms_key/Resource
   s3kmskeyAlias2C7CE359:
     Type: AWS::KMS::Alias
     Properties:
@@ -72,8 +74,6 @@ Resources:
         Fn::GetAtt:
           - s3kmskeyA0E45BCB
           - Arn
-    Metadata:
-      aws:cdk:path: SecHubExportStack/s3_kms_key/Alias/Resource
   securityhubexportbucket0BDF3430:
     Type: AWS::S3::Bucket
     Properties:
@@ -107,14 +107,13 @@ Resources:
         Status: Enabled
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
-    Metadata:
-      aws:cdk:path: SecHubExportStack/security_hub_export_bucket/Resource
   securityhubexportbucketPolicy5AE68C6C:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket:
         Ref: securityhubexportbucket0BDF3430
       PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Action: s3:*
             Condition:
@@ -154,13 +153,11 @@ Resources:
                         - securityhubexportbucket0BDF3430
                         - Arn
                     - /*
-        Version: "2012-10-17"
-    Metadata:
-      aws:cdk:path: SecHubExportStack/security_hub_export_bucket/Policy/Resource
   secubcsvmanagerrole6674D6A1:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Action: sts:AssumeRole
             Effect: Allow
@@ -169,12 +166,9 @@ Resources:
                 - ec2.amazonaws.com
                 - lambda.amazonaws.com
                 - ssm.amazonaws.com
-        Version: "2012-10-17"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       RoleName: SecurityHub_CSV_Exporter
-    Metadata:
-      aws:cdk:path: SecHubExportStack/secub_csv_manager_role/Resource
   secubcsvexporterfunction0B1F1A8E:
     Type: AWS::Lambda::Function
     Properties:
@@ -182,7 +176,7 @@ Resources:
         S3Bucket:
           Ref: S3BucketCode
         S3Key:
-          Ref: S3BucketCodePrefix
+          Ref: S3KeyExporter
       Role:
         Fn::GetAtt:
           - secubcsvmanagerrole6674D6A1
@@ -200,11 +194,6 @@ Resources:
       Timeout: 900
     DependsOn:
       - secubcsvmanagerrole6674D6A1
-    Metadata:
-      aws:cdk:path: SecHubExportStack/secub_csv_exporter_function/Resource
-      aws:asset:path: asset.133f856affd9fc0fa003760a3b0646a5d53081fef8dab0451f568378e855ea14
-      aws:asset:is-bundled: false
-      aws:asset:property: Code
   secubcsvupdaterfunction199A043C:
     Type: AWS::Lambda::Function
     Properties:
@@ -212,7 +201,7 @@ Resources:
         S3Bucket:
           Ref: S3BucketCode
         S3Key:
-          Ref: S3BucketCodePrefix
+          Ref: S3KeyUpdater
       Role:
         Fn::GetAtt:
           - secubcsvmanagerrole6674D6A1
@@ -230,15 +219,11 @@ Resources:
       Timeout: 900
     DependsOn:
       - secubcsvmanagerrole6674D6A1
-    Metadata:
-      aws:cdk:path: SecHubExportStack/secub_csv_updater_function/Resource
-      aws:asset:path: asset.133f856affd9fc0fa003760a3b0646a5d53081fef8dab0451f568378e855ea14
-      aws:asset:is-bundled: false
-      aws:asset:property: Code
   sechubcsvmanagedpolicy49025002:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Action:
               - iam:CreateServiceLinkedRole
@@ -312,17 +297,15 @@ Resources:
                   - Ref: AWS::Partition
                   - ":ssm:"
                   - Ref: PrimaryRegion
+                  - ":"
                   - Ref: AWS::AccountId
                   - :parameter/csvManager/*
             Sid: SSMAllow
-        Version: "2012-10-17"
       Description: ""
       ManagedPolicyName: sechub_csv_manager
       Path: /
       Roles:
         - Ref: secubcsvmanagerrole6674D6A1
-    Metadata:
-      aws:cdk:path: SecHubExportStack/sechub_csv_managed_policy/Resource
   Rule4C995B7F:
     Type: AWS::Events::Rule
     Properties:
@@ -340,8 +323,6 @@ Resources:
             InputPathsMap:
               event: $.event
             InputTemplate: '{"event":<event>}'
-    Metadata:
-      aws:cdk:path: SecHubExportStack/Rule/Resource
   RuleAllowEventRuleSecHubExportStacksecubcsvexporterfunction16C4F2B1D42AAC42:
     Type: AWS::Lambda::Permission
     Properties:
@@ -355,8 +336,6 @@ Resources:
         Fn::GetAtt:
           - Rule4C995B7F
           - Arn
-    Metadata:
-      aws:cdk:path: SecHubExportStack/Rule/AllowEventRuleSecHubExportStacksecubcsvexporterfunction16C4F2B1
   createshexportdocument:
     Type: AWS::SSM::Document
     Properties:
@@ -404,8 +383,6 @@ Resources:
             isEnd: true
       DocumentType: Automation
       Name: start_sh_finding_export
-    Metadata:
-      aws:cdk:path: SecHubExportStack/create_sh_export_document
   updateshexportdocument:
     Type: AWS::SSM::Document
     Properties:
@@ -442,8 +419,6 @@ Resources:
             isEnd: true
       DocumentType: Automation
       Name: start_sechub_csv_update
-    Metadata:
-      aws:cdk:path: SecHubExportStack/update_sh_export_document
   BucketNameParameterBB904042:
     Type: AWS::SSM::Parameter
     Properties:
@@ -452,8 +427,6 @@ Resources:
         Ref: securityhubexportbucket0BDF3430
       Description: The S3 bucket where Security Hub are exported.
       Name: /csvManager/bucket
-    Metadata:
-      aws:cdk:path: SecHubExportStack/BucketNameParameter/Resource
   KMSKeyParameter0B3310DD:
     Type: AWS::SSM::Parameter
     Properties:
@@ -464,8 +437,6 @@ Resources:
           - Arn
       Description: The KMS key encrypting the S3 bucket objects.
       Name: /csvManager/key
-    Metadata:
-      aws:cdk:path: SecHubExportStack/KMSKeyParameter/Resource
   CodeFolderParameter82BE4E3A:
     Type: AWS::SSM::Parameter
     Properties:
@@ -474,8 +445,6 @@ Resources:
         Ref: S3BucketCode
       Description: The folder where CSV Manager for Security Hub code is stored.
       Name: /csvManager/folder/code
-    Metadata:
-      aws:cdk:path: SecHubExportStack/CodeFolderParameter/Resource
   FindingsFolderParameter017314BA:
     Type: AWS::SSM::Parameter
     Properties:
@@ -484,8 +453,6 @@ Resources:
         Ref: FindingsFolder
       Description: The folder where CSV Manager for Security Hub findings are exported.
       Name: /csvManager/folder/findings
-    Metadata:
-      aws:cdk:path: SecHubExportStack/FindingsFolderParameter/Resource
   ArchiveKeyParameter8BD59A44:
     Type: AWS::SSM::Parameter
     Properties:
@@ -493,8 +460,6 @@ Resources:
       Value: Not Initialized
       Description: The name of the ZIP archive containing CSV Manager for Security Hub Lambda code.
       Name: /csvManager/object/codeArchive
-    Metadata:
-      aws:cdk:path: SecHubExportStack/ArchiveKeyParameter/Resource
   PartitionParameter82B291B4:
     Type: AWS::SSM::Parameter
     Properties:
@@ -503,8 +468,6 @@ Resources:
         Ref: Partition
       Description: The partition in which CSV Manager for Security Hub will operate.
       Name: /csvManager/partition
-    Metadata:
-      aws:cdk:path: SecHubExportStack/PartitionParameter/Resource
   RegionParameterA71AF3D0:
     Type: AWS::SSM::Parameter
     Properties:
@@ -513,25 +476,3 @@ Resources:
         Ref: Regions
       Description: The list of regions in which CSV Manager for Security Hub will operate.
       Name: /csvManager/regionList
-    Metadata:
-      aws:cdk:path: SecHubExportStack/RegionParameter/Resource
-  CDKMetadata:
-    Type: AWS::CDK::Metadata
-    Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/1VQy2rDMBD8lt7lbd3SQo9JQy+lYJwPCBt5axTrAVopJQj9eyXb4PQ0jx2tlnmG9h2eHvCXGzlMjVZnSMeAchIfP7ZDj4YCeVHmpzQZhvRFtzqqsNMKuYqZZMEvkPZRThSqubIFOqeVvG32qhexR6YsFBpIvdNUUzN+o8WRhu3tPyMLjeY8IKTPaGVQztbIPe/IG8VcVL3thMwUGHYVBF3JFpH6uH5YsKS43FDUwcloSkAcg1d23Hq4LyVn0RO76CWJeWnpbSzped06yMK6geDCj9f2DdrXUvWFlWp8tEEZgn7BP4ln7n+GAQAA
-    Metadata:
-      aws:cdk:path: SecHubExportStack/CDKMetadata/Default
-Rules:
-  CheckBootstrapVersion:
-    Assertions:
-      - Assert:
-          Fn::Not:
-            - Fn::Contains:
-                - - "1"
-                  - "2"
-                  - "3"
-                  - "4"
-                  - "5"
-                - Ref: BootstrapVersion
-        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
-
