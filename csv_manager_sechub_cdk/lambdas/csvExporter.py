@@ -141,7 +141,7 @@ def executor (role=None, region=None, filters=None, bucket=None, limit=0,
     hubActor.downloadFindings(filters=filters,limit=limit)
 
     if hubActor.count <= 0:
-        _LOGGER.war("493060w no findings downloaded")
+        _LOGGER.warning("493060w no findings downloaded")
     else:
         _LOGGER.info(f'493070i preparing to write {hubActor.count} findings')
 
