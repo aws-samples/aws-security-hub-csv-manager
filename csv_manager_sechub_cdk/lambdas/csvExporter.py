@@ -72,7 +72,10 @@ def getFilters ( candidate = None ):
         filters = {}
     elif candidate != "HighActive":
         try:
-            filters = json.loads(candidate)
+            if type(candidate) is dict:
+                filters = candidate
+            else:
+                filters = json.loads(candidate)
         except Exception as thrown:
             _LOGGER.error(f'493020e filter parsing failed: {thrown}')
             filters = {}
@@ -203,7 +206,10 @@ def lambdaHandler ( event = None, context = None ):
     # The event keys we care about are processed below
     role = event.get("role")
     region = event.get("region")
-    filters = getFilters(event.get("filters", {}))
+    if 'filters' in (event.keys()):
+        filters=getFilters(event.get("filters", {}))
+    else:
+        filters=event
     bucket = event.get("bucket")
     retain = event.get("retainLocal", False)
     limit = event.get("limit", 0)
